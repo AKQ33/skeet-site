@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKEET — Minecraft 注入式客户端</title>
+<meta name="description" content="SKEET：为 Minecraft 1.20.1 Forge / 1.21.8 NeoForge 打造的注入式客户端。Native DLL 注入与硬件指纹伪装，针对主流反作弊深度调优。">
+<meta name="theme-color" content="#04080a">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div id="glow" aria-hidden="true"></div>
+<canvas id="matrix" aria-hidden="true"></canvas>
+<canvas id="particles" aria-hidden="true"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<div class="crt-flicker"></div>
+
+<!-- ══════════ BOOT ══════════ -->
+<div id="boot" role="dialog" aria-label="boot sequence">
+  <div class="boot-head">SKEET :: boot sequence &nbsp;/&nbsp; root@skeet-node</div>
+  <div class="boot-lines" id="bootLines"></div>
+  <div class="progress-track"><div class="progress-fill" id="bootFill"></div></div>
+  <div class="boot-skip" id="bootSkip">[ click anywhere / press any key to skip ]</div>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<header class="nav">
+  <div class="nav-brand">
+    <span class="glyph">▮</span><span class="at">root@</span><span class="host">skeet</span><span class="at">:~#</span>
+  </div>
+  <nav class="nav-links" aria-label="primary">
+    <a href="#live">live</a>
+    <a href="#hud">hud</a>
+    <a href="#features">features</a>
+    <a href="#modules">modules</a>
+    <a href="#bypass">bypass</a>
+    <a href="#platforms">platforms</a>
+    <a href="#faq">faq</a>
+  </nav>
+  <div class="nav-stat">uptime <b id="uptime">00:00:00</b> · v1.0</div>
+</header>
+
+<main>
+
+<!-- ══════════ HERO ══════════ -->
+<section class="hero" id="home">
+  <div class="wrap">
+    <div class="row" style="margin-bottom:22px">
+      <span class="pill">mc 1.20.1 · forge 47.4.20</span>
+      <span class="pill cyan">mc 1.21.8 · neoforge</span>
+      <span class="pill amber">java 17</span>
+    </div>
+
+    <pre class="ascii" id="ascii-logo" aria-label="SKEET ascii logo"><span class="ascii-fb">SKEET</span></pre>
+
+    <div class="hero-row">
+      <p class="tagline">
+        为 Minecraft 而生的<span class="hi">注入式客户端</span>。<br>
+        单一文件交付，<span class="c2">Native DLL 注入与硬件指纹伪装</span>，<br>
+        针对主流反作弊<span class="hi">深度调优</span>。
+      </p>
+    </div>
+
+    <div class="hero-cmd" aria-live="polite">
+      <span class="caret-line"><span class="c-prompt">skeet&gt;</span> <span class="typed" id="typedCmd"></span><span class="caret"></span></span>
+      <span class="out" id="typedOut"></span>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hstat"><b>284</b><span>fps peak</span></div>
+      <div class="hstat"><b>92</b><span>modules</span></div>
+      <div class="hstat"><b>7</b><span>categories</span></div>
+      <div class="hstat"><b>0</b><span>runtime deps</span></div>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn" href="#live">see it live</a>
+      <a class="btn ghost" href="#features">features</a>
+    </div>
+  </div>
+  <div class="scroll-hint">↓ scroll to descend ↓</div>
+</section>
+
+<!-- ══════════ LIVE SHOT ══════════ -->
+<section id="live">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="prompt">root@skeet-node:~#</span>
+      <span class="cmd">open --live</span>
+      <span class="flag">in game</span>
+    </div>
+    <h2 class="sec-title reveal">实战画面<small>PVP 对局胜利瞬间 —— 模块列表、性能监控、伤害日志、计分板,全部在客户端内实时渲染。</small></h2>
+    <div class="sec-rule"></div>
+
+    <figure class="shot reveal d1">
+      <div class="term-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="term-title">minecraft forge 1.20.1 — <span class="path">live session</span></span>
+        <span class="term-badge live">captured</span>
+      </div>
+      <div class="shot-inner">
+        <img src="assets/img/screenshot.jpg" alt="SKEET 客户端实战画面：PVP 胜利、模块列表、性能监控与计分板" loading="lazy">
+      </div>
+    </figure>
+
+    <div class="shot-notes reveal d2">
+      <div class="shot-note">
+        <span class="sn-h">模块列表</span>
+        <span class="sn-b">右侧悬浮的分类模块列表,当前状态一目了然。</span>
+      </div>
+      <div class="shot-note">
+        <span class="sn-h">性能监控</span>
+        <span class="sn-b">284 FPS / 0 PING / 25% CPU / 569 MB 常驻显示。</span>
+      </div>
+      <div class="shot-note">
+        <span class="sn-h">伤害日志</span>
+        <span class="sn-b">每次命中记录伤害值与剩余血量,左上角滚动。</span>
+      </div>
+      <div class="shot-note">
+        <span class="sn-h">计分板</span>
+        <span class="sn-b">胜者、双方血量与对战时长实时同步。</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ HUD SYSTEM ══════════ -->
+<section id="hud">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="prompt">root@skeet-node:~#</span>
+      <span class="cmd">./skeet --hud</span>
+      <span class="flag">in-engine render</span>
+    </div>
+    <h2 class="sec-title reveal">界面系统<small>截图里每一个像素都在客户端内渲染 —— 性能、坐标、伤害、计分,全部实时。</small></h2>
+    <div class="sec-rule"></div>
+
+    <div class="hud-grid">
+      <div class="hud-item reveal">
+        <span class="hud-k">perf monitor</span>
+        <span class="hud-v">284 fps · 0 ping</span>
+        <span class="hud-d">帧率、延迟、CPU 占用与内存常驻显示。截图中实测 284 FPS / 0 PING / 25% CPU / 569 MB。</span>
+      </div>
+      <div class="hud-item reveal d1">
+        <span class="hud-k">coordinates</span>
+        <span class="hud-v">X · Y · Z</span>
+        <span class="hud-d">实时位置坐标常驻显示,快速判断站位与距离。</span>
+      </div>
+      <div class="hud-item reveal d2">
+        <span class="hud-k">damage log</span>
+        <span class="hud-v">伤害与剩余血量</span>
+        <span class="hud-d">每次命中记录伤害值与剩余血量,左上角滚动显示。</span>
+      </div>
+      <div class="hud-item reveal d1">
+        <span class="hud-k">scoreboard</span>
+        <span class="hud-v">胜者 · 血量 · 时长</span>
+        <span class="hud-d">对战比分实时同步,当前胜者与双方血量一目了然。</span>
+      </div>
+      <div class="hud-item reveal d2">
+        <span class="hud-k">target info</span>
+        <span class="hud-v">名称 · 血量 · 距离</span>
+        <span class="hud-d">指向的目标实时显示名称、血量与距离,配合 TargetESP 使用。</span>
+      </div>
+      <div class="hud-item reveal d3">
+        <span class="hud-k">localization</span>
+        <span class="hud-v">完整中文界面</span>
+        <span class="hud-d">模块名、设置项与通知全部汉化,英文模式可选。</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FEATURES ══════════ -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="prompt">root@skeet-node:~#</span>
+      <span class="cmd">cat FEATURES.md</span>
+      <span class="flag">why skeet</span>
+    </div>
+    <h2 class="sec-title reveal">六个理由<small></small></h2>
+    <div class="sec-rule"></div>
+
+    <div class="feats">
+      <div class="feat reveal">
+        <div class="feat-n">01</div>
+        <div class="feat-t">单一文件交付</div>
+        <div class="feat-b">一个 EXE 装下注入器与全部载荷。不安装、不配置、不依赖任何运行时组件 —— 丢过去就能用。</div>
+        <span class="pill cyan">zero runtime deps</span>
+      </div>
+      <div class="feat reveal d1">
+        <div class="feat-n">02</div>
+        <div class="feat-t">Native 层绕过</div>
+        <div class="feat-b">DLL 直接加载进目标进程，不经过任何 mods 路径；硬件指纹在命令发出前被替换，服务器收到的是伪造的 hwid。</div>
+        <span class="pill">native bypass</span>
+      </div>
+      <div class="feat reveal d2">
+        <div class="feat-n">03</div>
+        <div class="feat-t">深度反作弊调优</div>
+        <div class="feat-b">针对 GrimAC、ACA、Themis 逐项对齐具体检查项 —— 不是笼统的"绕过"，而是逐条处理。</div>
+        <span class="pill magenta">bypass suite</span>
+      </div>
+      <div class="feat reveal d3">
+        <div class="feat-n">04</div>
+        <div class="feat-t">自带补丁引擎</div>
+        <div class="feat-b">注解式的字节码补丁框架，不依赖 Mixin。补丁在类加载那一刻完成，无需额外容器。</div>
+        <span class="pill">no mixin</span>
+      </div>
+      <div class="feat reveal d4">
+        <div class="feat-n">05</div>
+        <div class="feat-t">92 个模块 · 7 大类</div>
+        <div class="feat-b">战斗、移动、玩家、渲染、漏洞、世界、杂项。覆盖完整对局，从起手到收尾。</div>
+        <span class="pill amber">92 modules</span>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-n">06</div>
+        <div class="feat-t">游戏内什么都有</div>
+        <div class="feat-b">点击 GUI、通知系统、目标 HUD、音乐与歌词、动态岛屿、中英双语 —— 全在一个客户端里。</div>
+        <span class="pill">2 languages</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ MODULES ══════════ -->
+<section id="modules">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="prompt">root@skeet-node:~#</span>
+      <span class="cmd">./skeet --modules</span>
+      <span class="flag">92 modules · 7 categories</span>
+    </div>
+    <h2 class="sec-title reveal">模块系统<small>按功能分区组织。完整列表与开关在游戏内点击 GUI 中浏览。</small></h2>
+    <div class="sec-rule"></div>
+
+    <div class="mods">
+      <div class="mod reveal">
+        <div class="mod-head">
+          <span class="mod-n">combat</span>
+          <span class="mod-cn">战斗</span>
+          <span class="mod-c">5 shown</span>
+        </div>
+        <div class="mod-l"><b>Critical</b> · <b>Velocity</b> · <b>Hitmarker</b> · <b>DamageGlow</b> · <b>Backtrack</b></div>
+      </div>
+      <div class="mod reveal d1">
+        <div class="mod-head">
+          <span class="mod-n">render</span>
+          <span class="mod-cn">渲染</span>
+          <span class="mod-c">8 shown</span>
+        </div>
+        <div class="mod-l"><b>ESP</b> · <b>TargetESP</b> · <b>TargetHUD</b> · <b>TargetList</b> · <b>ChestESP</b> · <b>Watermark</b> · <b>NameProtect</b> · <b>dmgind</b></div>
+      </div>
+      <div class="mod reveal d2">
+        <div class="mod-head">
+          <span class="mod-n">movement</span>
+          <span class="mod-cn">移动</span>
+          <span class="mod-c">3 shown</span>
+        </div>
+        <div class="mod-l"><b>Sprint</b> · <b>AutoTool</b> · <b>NoJumpDelay</b></div>
+      </div>
+      <div class="mod reveal d1">
+        <div class="mod-head">
+          <span class="mod-n">defense</span>
+          <span class="mod-cn">防御</span>
+          <span class="mod-c">4 shown</span>
+        </div>
+        <div class="mod-l"><b>AntiStaff</b> · <b>AntiBots</b> · <b>Armor</b> · <b>Disabler</b></div>
+      </div>
+      <div class="mod reveal d2">
+        <div class="mod-head">
+          <span class="mod-n">utility</span>
+          <span class="mod-cn">工具</span>
+          <span class="mod-c">4 shown</span>
+        </div>
+        <div class="mod-l"><b>AutoClicker</b> · <b>Compass</b> · <b>GhostHand</b> · <b>PathFinder</b></div>
+      </div>
+      <div class="mod reveal d3">
+        <div class="mod-head">
+          <span class="mod-n">system</span>
+          <span class="mod-cn">系统</span>
+          <span class="mod-c">5 shown</span>
+        </div>
+        <div class="mod-l"><b>Hotkeys</b> · <b>SessionTime</b> · <b>Notification</b> · <b>Teams</b> · <b>VisualAbility</b></div>
+      </div>
+    </div>
+
+    <p class="reveal" style="margin-top:22px; font-size:12.3px; color:var(--faint); line-height:1.75;">
+      <span style="color:var(--green)">92 个模块 · 7 大类</span> —— 上面展示的是实战截图中可见的部分,完整清单在游戏内点击 GUI 中按分类浏览。
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ BYPASS ══════════ -->
+<section id="bypass">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="prompt">root@skeet-node:~#</span>
+      <span class="cmd">./skeet --bypass</span>
+      <span class="flag">tuned</span>
+    </div>
+    <h2 class="sec-title reveal">反作弊调优<small>不是"绕过反作弊"一句话 —— 每个检查项都单独对齐。</small></h2>
+    <div class="sec-rule"></div>
+
+    <div class="bypass-row reveal d1">
+      <div class="bw bw-a"><span class="bw-n">GrimAC</span><span class="bw-d">槽位回弹 · 旋转判据 · 移动包修正</span></div>
+      <div class="bw bw-c"><span class="bw-n">ACA</span><span class="bw-d">切换节奏 · 背包频率 · 旋转步进</span></div>
+      <div class="bw bw-m"><span class="bw-n">Themis</span><span class="bw-d">Blink 行为对齐</span></div>
+    </div>
+
+    <div class="grid-2 reveal d2" style="margin-top:22px">
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="term-title">disabler — <span class="path">packet-level</span></span>
+          <span class="term-badge ok">armed</span>
+        </div>
+        <div class="term-body">
+<pre class="code">
+<span class="c-ok">✓</span> 槽位回弹 &nbsp;&nbsp;&nbsp; 重复的槽位包直接拦下，
+    不留下可判定的痕迹。
+
+<span class="c-ok">✓</span> 背包频率 &nbsp;&nbsp;&nbsp; 打开与关闭之间的间隔被
+    重新排布，避开频率判据。
+
+<span class="c-ok">✓</span> 旋转步进 &nbsp;&nbsp;&nbsp; 视角变化按服务端预期的
+    离散步长量化，不出现异常跳跃。
+
+<span class="c-ok">✓</span> 移动包修正 &nbsp;&nbsp; 越界字段在发出前被修正，
+    同时保留真实的位移数据。</pre>
+        </div>
+      </div>
+
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="term-title">native — <span class="path">bypass layer</span></span>
+          <span class="term-badge amber">关键</span>
+        </div>
+        <div class="term-body">
+<pre class="code">
+<span class="c-com"># 绕过不只在 Java 层 ——
+# native 层同样在做。</span>
+
+<span class="c-bold">Native DLL 注入</span>
+<span class="c-ok">直接加载进目标进程，</span>
+  不经过 mods/ 路径，也没有第三方容器。
+
+<span class="c-bold">硬件指纹伪装</span>
+<span class="c-ok">拦截发出的聊天命令，</span>
+  把 hwid / verify / mac / disk 字段
+  替换成随机生成的硬件指纹。
+
+  <span class="c-dim">服务器收到的是伪造的值</span>
+  <span class="c-dim">—— 硬件识别对不上号。</span>
+
+<span class="c-warn">⚠</span> 覆盖命令：<span class="c-ok">/hwid · /verify · /mac · /disk</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PLATFORMS ══════════ -->
+<section id="platforms">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="prompt">root@skeet-node:~#</span>
+      <span class="cmd">./skeet --platforms</span>
+      <span class="flag">dual version</span>
+    </div>
+    <h2 class="sec-title reveal">两个版本，一个文件<small>加载器读取目标进程的启动信息自动判断版本，判断不出来会直接拒绝注入。</small></h2>
+    <div class="sec-rule"></div>
+
+    <div class="plats">
+      <div class="plat reveal d1">
+        <div class="plat-tag">v1</div>
+        <div class="plat-v">1.20.1</div>
+        <div class="plat-l">Forge 47.4.20</div>
+        <div class="plat-d">主线版本，完整功能覆盖。</div>
+      </div>
+      <div class="plat reveal d2">
+        <div class="plat-tag">v2</div>
+        <div class="plat-v">1.21.8</div>
+        <div class="plat-l">NeoForge</div>
+        <div class="plat-d">跟随新版本迁移，持续维护。</div>
+      </div>
+      <div class="plat reveal d3">
+        <div class="plat-tag">core</div>
+        <div class="plat-v">Java 17</div>
+        <div class="plat-l">Mojmap</div>
+        <div class="plat-d">基于官方字段名，不依赖第三方映射。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FAQ ══════════ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="prompt">root@skeet-node:~#</span>
+      <span class="cmd">man faq</span>
+      <span class="flag">read before asking</span>
+    </div>
+    <h2 class="sec-title reveal">FAQ<small></small></h2>
+    <div class="sec-rule"></div>
+
+    <div class="faq-item reveal">
+      <button class="faq-q">SKEET 是什么？</button>
+      <div class="faq-a"><div class="faq-a-inner">
+        一个面向 Minecraft 的<span style="color:var(--green)">注入式客户端</span>。它不是 Forge mod —— 不走 <code>mods/</code> 加载路径，而是在 JVM 层面完成自身注入与字节码补丁。支持 1.20.1 Forge 与 1.21.8 NeoForge 两个版本，以单一 EXE 文件交付。
+      </div></div>
+    </div>
+
+    <div class="faq-item reveal">
+      <button class="faq-q">需要怎么安装？</button>
+      <div class="faq-a"><div class="faq-a-inner">
+        没有安装步骤。<span style="color:var(--cyan)">一个文件</span>，Qt6 完全静态链接，不需要装任何运行时组件。<br><br>
+        用正常方式启动游戏后运行加载器，它会列出当前系统里所有 Minecraft 实例，选中一个点注入即可。
+      </div></div>
+    </div>
+
+    <div class="faq-item reveal">
+      <button class="faq-q">能当 Forge mod 放进 mods/ 吗？</button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <span style="color:var(--red)">不能。</span><code>mods/</code> 加载路径<span style="color:var(--amber)">不被支持</span>，不要把 jar 丢进 <code>.minecraft/mods/</code>。正确方式是走注入路径。
+      </div></div>
+    </div>
+
+
+
+    <div class="faq-item reveal">
+      <button class="faq-q">支持哪些反作弊？</button>
+      <div class="faq-a"><div class="faq-a-inner">
+        调优针对 <span style="color:var(--green)">GrimAC</span>、<span style="color:var(--cyan)">ACA</span>、<span style="color:var(--magenta)">Themis</span> 三类，处理具体到每个检查项（槽位回弹、背包频率、旋转步进、移动包修正等）。<br><br>
+        另外还有 <span style="color:var(--cyan)">Native 层绕过</span>：DLL 直接注入不走 mods 路径，硬件指纹（hwid / verify / mac / disk）在命令发出前被替换成随机值，服务器的硬件识别对不上号。
+      </div></div>
+    </div>
+
+    <div class="faq-item reveal">
+      <button class="faq-q">有模块清单吗？</button>
+      <div class="faq-a"><div class="faq-a-inner">
+        <span style="color:var(--green)">92 个模块，7 大类</span>：战斗、移动、玩家、渲染、漏洞、世界、杂项。完整清单在游戏内的点击 GUI 里按分类浏览 —— 那里是最准确、最及时的来源。
+      </div></div>
+    </div>
+
+    <div class="faq-item reveal">
+      <button class="faq-q">使用它有风险吗？</button>
+      <div class="faq-a"><div class="faq-a-inner">
+        有。这个客户端是<span style="color:var(--amber)">为特定服务器的反作弊机制设计</span>的，在受限制的服务器上使用可能违反游戏规则与服务器条款，导致封禁。使用者需自行评估并承担全部后果。<br><br>
+        本项目与 Minecraft / Mojang / Microsoft 无任何关联。
+      </div></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-h">SKEET</div>
+        <p class="foot-l">Minecraft 1.20.1 Forge / 1.21.8 NeoForge 注入式客户端。单一文件交付、Native DLL 注入与硬件指纹伪装、针对主流反作弊深度调优。</p>
+        <p class="foot-l" style="margin-top:10px">v1.0 · by <span style="color:var(--green-hi)">Shirona1337</span> · All Rights Reserved</p>
+      </div>
+      <div>
+        <div class="foot-h">sections</div>
+        <p class="foot-l"><a href="#live">live</a> · <a href="#hud">hud</a> · <a href="#features">features</a></p>
+        <p class="foot-l"><a href="#modules">modules</a> · <a href="#bypass">bypass</a> · <a href="#platforms">platforms</a> · <a href="#faq">faq</a></p>
+      </div>
+      <div>
+        <div class="foot-h">supported</div>
+        <p class="foot-l"><span class="kbd">mc 1.20.1</span> <span style="color:var(--faint)">forge</span></p>
+        <p class="foot-l"><span class="kbd">mc 1.21.8</span> <span style="color:var(--faint)">neoforge</span></p>
+        <p class="foot-l"><span class="kbd">java 17</span> <span style="color:var(--faint)">mojmap</span></p>
+      </div>
+    </div>
+
+    <div class="foot-disc">
+      <b>免责声明 //</b> 本站为项目宣传页面，纯静态展示，不包含任何下载、激活、注册、授权或网络请求功能。
+      该客户端针对特定服务器的反作弊机制设计，在受限制的服务器上使用可能违反游戏规则与服务器条款，
+      使用者需自行评估并承担全部后果。本站与 Minecraft / Mojang / Microsoft 无任何关联。
+    </div>
+
+    <div class="foot-bottom">
+      <span>[ SKEET // promo site ]</span>
+      <span id="footTime">— · —</span>
+      <span>exit code: 0</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>
