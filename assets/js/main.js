@@ -39,66 +39,25 @@
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   /* ──────────────────────────────────────────────────────────
-     1. ASCII logo — ANSI Shadow, per-letter colour
+     1. logo — SVG stroke-draw animation (AppleCurve style)
+     SMIL <animate> chains on stroke-dasharray; rebuilt after
+     the boot overlay so the full draw is visible.
      ────────────────────────────────────────────────────────── */
-  /* solid pixel font — 5 rows, shapes read from overall silhouette
-     rather than thin strokes, so they stay legible at small sizes */
-  var FONT = {
-    S: ['████████', '██      ', '████████', '      ██', '████████'],
-    K: ['██     ██', '██  ██', '██████', '██  ██', '██     ██'],
-    E: ['████████', '██      ', '██████  ', '██      ', '████████'],
-    T: ['████████', '   ██   ', '   ██   ', '   ██   ', '   ██   ']
-  };
-  function padTo(s, n) { s = String(s); while (s.length < n) s += ' '; return s; }
-
-  /* per-letter box width, so the gap stays even across rows of unequal length */
-  var FW = (function () {
-    var w = {};
-    for (var k in FONT) {
-      var m = 0, rows = FONT[k];
-      for (var i = 0; i < rows.length; i++) if (rows[i].length > m) m = rows[i].length;
-      w[k] = m + 2;
-    }
-    return w;
-  })();
-
-  (function renderLogo() {
-    var el = $('ascii-logo');
-    if (!el || !FONT.S) return;
-    var word = 'SKEET';
-    var spans = [];
-    for (var i = 0; i < word.length; i++) spans.push({ ch: word.charAt(i), lines: FONT[word.charAt(i)] });
-    var html = '';
-    for (var r = 0; r < FONT.S.length; r++) {
-      for (var j = 0; j < spans.length; j++) {
-        var ch = spans[j].ch;
-        var cls = ch === 'S' ? 's' : ch === 'K' ? 'k' : ch === 'T' ? 't' : 'e';
-        html += '<span class="' + cls + ' lt" data-l="' + j + '">' + padTo(spans[j].lines[r], FW[ch]) + '</span>';
-      }
-      html += '\n';
-    }
-    el.innerHTML = html;
-  })();
-
-  /* per-letter entrance — kicked off once the boot overlay closes */
   function triggerLogoReveal() {
-    if (REDUCED) return;
-    var spans = document.querySelectorAll('#ascii-logo .lt');
-    if (!spans.length) return;
-    var groups = {};
-    for (var i = 0; i < spans.length; i++) {
-      var l = spans[i].getAttribute('data-l');
-      (groups[l] = groups[l] || []).push(spans[i]);
+    var svg = document.getElementById('ascii-logo');
+    if (!svg) return;
+    if (REDUCED) {
+      var strokes = svg.querySelectorAll('.skeet-stroke');
+      for (var i = 0; i < strokes.length; i++) {
+        strokes[i].setAttribute('stroke-dasharray', '100, 0');
+        var an = strokes[i].querySelector('animate');
+        if (an) strokes[i].removeChild(an);
+      }
+      return;
     }
-    var keys = Object.keys(groups).sort();
-    for (var k = 0; k < keys.length; k++) {
-      (function (idx) {
-        setTimeout(function () {
-          var arr = groups[keys[idx]];
-          for (var j = 0; j < arr.length; j++) arr[j].classList.add('on');
-        }, 130 * idx + 40);
-      })(k);
-    }
+    /* re-insert so the SMIL timeline starts fresh after boot */
+    var clone = svg.cloneNode(true);
+    svg.parentNode.replaceChild(clone, svg);
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -264,6 +223,7 @@
       document.body.classList.add('booted');
       sessionStorage.setItem('skeet_booted', '1');
       triggerLogoReveal();
+      window.dispatchEvent(new CustomEvent('skeet-ready'));
       document.removeEventListener('click', finish);
       document.removeEventListener('keydown', finish);
     }
@@ -363,7 +323,34 @@
   })();
 
   /* ──────────────────────────────────────────────────────────
-     8. clocks
+     8. hero stats count-up
+     ────────────────────────────────────────────────────────── */
+  (function countUp() {
+    var nums = document.querySelectorAll('.hstat b');
+    if (!nums.length || REDUCED) return;
+    var ran = false;
+    function run() {
+      if (ran) return; ran = true;
+      nums.forEach(function (el) {
+        var target = parseInt(el.textContent, 10) || 0;
+        if (target === 0) { el.textContent = '0'; return; }
+        var dur = 1500, t0 = null;
+        function step(t) {
+          if (!t0) t0 = t;
+          var p = Math.min(1, (t - t0) / dur);
+          var e = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(target * e);
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    }
+    if (sessionStorage.getItem('skeet_booted')) run();
+    else document.addEventListener('skeet-ready', run);
+  })();
+
+  /* ──────────────────────────────────────────────────────────
+     9. clocks
      ────────────────────────────────────────────────────────── */
   (function clocks() {
     var up = $('uptime'), ft = $('footTime');
